@@ -1,7 +1,7 @@
 // for ledger operation
 
 use std::fs::{OpenOptions, File};
-use std::io::{Write};
+use std::io::{BufRead, BufReader, Write};
 use crate::models::LedgerEntry;
 
 const LEDGER_FILE: &str= "ledger.jsonl";
@@ -13,8 +13,19 @@ pub fn append_entry(entry: &LedgerEntry) -> std::io::Result<()>{
     Ok(())
 }
 
-pub read_all_entries() -> std::io::Result<Vec<LedgerEntry>>{
-    //Todo
+pub read_all_entries()->std::io::Result<Vec<LedgerEntry>>{
+    let file = match  File::open(LEDGER_FILE){
+        Ok(f)=>f,
+        Err(_)=> return Ok(vec![]), 
+    };
+    let reader = BufReader::new(file);
+    let mut entries = Vec::new();
+    for line in reader.lines(){
+        let line = line?;
+        let entry: LedgerEntry = serde_json::from_str(&line);
+        entry.push(entry);
+    }
+    Ok(entries)
 }
 
 
