@@ -1,5 +1,4 @@
 // for ledger operation
-
 use crate::models::LedgerEntry;
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
@@ -12,7 +11,7 @@ pub fn append_entry(entry: &LedgerEntry) -> std::io::Result<()> {
         .append(true)
         .open(LEDGER_FILE)?;
     let json_line = serde_json::to_string(entry)?;
-    writeln!(file, "{}", json_line);
+    writeln!(file, "{}", json_line)?;
     Ok(())
 }
 
