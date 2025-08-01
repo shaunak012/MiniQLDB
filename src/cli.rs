@@ -1,3 +1,4 @@
+use serde_json::json;
 use clap::{Parser,Subcommand};
 use crate::models::LedgerEntry;
 use crate::ledger::{append_entry, get_last_hash, read_all_entries};
@@ -36,10 +37,18 @@ pub fn run(){
         }
         Commands::Get { id } =>{
             let entries= read_all_entries().unwrap();
-            println!("Last Entry: {:#?}",entries.last())
+            println!("Last Entry: {:#?}", entries.last()) //TODO: I am bored rn but DO IT future me
         }
         Commands::History { id }=>{
-
+            let entries=read_all_entries().unwrap();
+            let history: Vec<_> = entries.into_iter().filter(|e| e.id==id).collect();
+            if history.is_empty(){
+                println!("No histroy found for {}",id);
+            }else{
+                for entry in history{
+                    println!("{:#?}", entry);
+                }
+            }
         }
     }
 }
