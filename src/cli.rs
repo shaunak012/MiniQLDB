@@ -51,7 +51,7 @@ pub fn run(){
                 for entry in history{
                     println!("{:#?}", entry);
                 }
-            }
+            }//Fix this
         }
     }
 }
