@@ -41,17 +41,20 @@ impl LedgerEntry {
 }
 
 impl fmt::Display for LedgerEntry {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let time = chrono::DateTime::from_timestamp(self.timestamp, 0)
-            .unwrap()
-            .format("%d-%m-%Y %H:%M:%S").to_string();
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        let time = match chrono::DateTime::from_timestamp(self.timestamp, 0){
+            Some(time) => time.format("%d-%m-%Y %H:%M:%S").to_string(),
+            None => return Err(fmt::Error),
+        };
 
+        let pretty_data=serde_json::to_string_pretty(&self.data).map_err(|_| fmt::Error)?;
+        
         write!(
             f,
-            "[{}] ID: {} \nData: {}\nPrev Hash: {}\nHash: {}\n",
+            "[{}] \nID: {} \nData: {}\nPrev Hash: {}\nHash: {}\n",
             time,
             self.id,
-            serde_json::to_string_pretty(&self.data).unwrap(),
+            pretty_data,
             self.prevhash,
             self.hash
         )
