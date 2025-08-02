@@ -38,3 +38,21 @@ pub fn get_last_hash() -> std::io::Result<String> {
         Ok("0".to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::LedgerEntry;
+    use serde_json::json;
+
+    #[test]
+    fn test_append_and_read() {
+        let entry = LedgerEntry::new("test_entry".to_string(), json!({"a":1}), "0".to_string());
+        append_entry(&entry).unwrap();
+
+        let entries = read_all_entries().unwrap();
+
+        let found = entries.iter().any(|e| e.id == "test_entry");
+        assert!(found);
+    }
+}

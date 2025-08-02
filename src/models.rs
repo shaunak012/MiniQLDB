@@ -42,43 +42,39 @@ impl LedgerEntry {
 
 impl fmt::Display for LedgerEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-        let time = match chrono::DateTime::from_timestamp(self.timestamp, 0){
+        let time = match chrono::DateTime::from_timestamp(self.timestamp, 0) {
             Some(time) => time.format("%d-%m-%Y %H:%M:%S").to_string(),
             None => return Err(fmt::Error),
         };
 
-        let pretty_data=serde_json::to_string_pretty(&self.data).map_err(|_| fmt::Error)?;
-        
+        let pretty_data = serde_json::to_string_pretty(&self.data).map_err(|_| fmt::Error)?;
+
         write!(
             f,
             "[{}] \nID: {} \nData: {}\nPrev Hash: {}\nHash: {}\n",
-            time,
-            self.id,
-            pretty_data,
-            self.prevhash,
-            self.hash
+            time, self.id, pretty_data, self.prevhash, self.hash
         )
     }
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::*;
     use serde_json::json;
 
     #[test]
-    fn test_hash_consistency(){
-        let entry1= LedgerEntry::new("test".to_string(),json!({"a":1}),"prevhash".to_string());
-        let entry2= LedgerEntry::new("test".to_string(),json!({"a":1}),"prevhash".to_string());
-        
+    fn test_hash_consistency() {
+        let entry1 = LedgerEntry::new("test".to_string(), json!({"a":1}), "prevhash".to_string());
+        let entry2 = LedgerEntry::new("test".to_string(), json!({"a":1}), "prevhash".to_string());
+
         assert_eq!(entry1.hash, entry2.hash);
     }
 
     #[test]
-    fn test_hash_changes_with_data(){
-        let entry1= LedgerEntry::new("test".to_string(),json!({"a":1}),"prevhash".to_string());
-        let entry2= LedgerEntry::new("test".to_string(),json!({"a":2}),"prevhash".to_string());
-        
+    fn test_hash_changes_with_data() {
+        let entry1 = LedgerEntry::new("test".to_string(), json!({"a":1}), "prevhash".to_string());
+        let entry2 = LedgerEntry::new("test".to_string(), json!({"a":2}), "prevhash".to_string());
+
         assert_ne!(entry1.hash, entry2.hash);
     }
 }
