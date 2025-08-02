@@ -44,7 +44,8 @@ impl fmt::Display for LedgerEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let time = chrono::DateTime::from_timestamp(self.timestamp, 0)
             .unwrap()
-            .format("%Y-%m-%d %H:%M:%S");
+            .format("%d-%m-%Y %H:%M:%S").to_string();
+
         write!(
             f,
             "[{}] ID: {} \nData: {}\nPrev Hash: {}\nHash: {}\n",

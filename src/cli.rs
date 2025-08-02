@@ -44,12 +44,13 @@ pub fn run(){
         }
         Commands::History { id }=>{
             let entries=read_all_entries().unwrap();
-            let history: Vec<_> = entries.into_iter().filter(|e| e.id==id).collect();
+            let mut history: Vec<_> = entries.into_iter().filter(|e| e.id==id).collect();
             if history.is_empty(){
                 println!("No histroy found for ID: {}",id);
             }else{
+                history.sort_by_key(|e| e.timestamp);
                 for entry in history{
-                    println!("{:#?}", entry);
+                    println!("{}", entry);
                 }
             }//Fix this
         }
