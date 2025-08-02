@@ -2,10 +2,9 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use core::fmt;
 use std::fmt;
 
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct LedgerEntry {
     pub id: String,
     pub data: Value,
@@ -41,12 +40,19 @@ impl LedgerEntry {
     }
 }
 
-impl fmt::Display for LedgerEntry{
+impl fmt::Display for LedgerEntry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let time = chrono::DateTime::from_timestamp(self.timestamp,0);
-        match time {
-            Some(e)=>time = e.format("%Y-%m-%d %H:%M");
-        }
-        
+        let time = chrono::DateTime::from_timestamp(self.timestamp, 0)
+            .unwrap()
+            .format("%Y-%m-%d %H:%M:%S");
+        write!(
+            f,
+            "[{}] ID: {} \nData: {}\nPrev Hash: {}\nHash: {}\n",
+            time,
+            self.id,
+            serde_json::to_string_pretty(&self.data).unwrap(),
+            self.prevhash,
+            self.hash
+        )
     }
 }
