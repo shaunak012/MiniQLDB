@@ -36,7 +36,7 @@ pub fn run(){
         }
         Commands::Get { id } =>{
             let entries= read_all_entries().unwrap();
-            let latest = entries.iter().find(|e| e.id==id);
+            let latest = entries.iter().rev().find(|e| e.id==id);
             match latest {
                 Some(e)=>println!("{:#?}",e),
                 None => println!("No entry found for ID: {}",id)
