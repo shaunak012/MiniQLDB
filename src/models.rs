@@ -60,3 +60,25 @@ impl fmt::Display for LedgerEntry {
         )
     }
 }
+
+#[cfg(test)]
+mod tests{
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_hash_consistency(){
+        let entry1= LedgerEntry::new("test".to_string(),json!({"a":1}),"prevhash".to_string());
+        let entry2= LedgerEntry::new("test".to_string(),json!({"a":1}),"prevhash".to_string());
+        
+        assert_eq!(entry1.hash, entry2.hash);
+    }
+
+    #[test]
+    fn test_hash_changes_with_data(){
+        let entry1= LedgerEntry::new("test".to_string(),json!({"a":1}),"prevhash".to_string());
+        let entry2= LedgerEntry::new("test".to_string(),json!({"a":2}),"prevhash".to_string());
+        
+        assert_ne!(entry1.hash, entry2.hash);
+    }
+}
