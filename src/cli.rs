@@ -22,6 +22,7 @@ pub enum Commands{
     History{
         id:String,
     },
+    BuildBlock
 }
 
 pub fn run(){
@@ -53,6 +54,17 @@ pub fn run(){
                     println!("{}", entry);
                 }
             }
+        }
+        Commands::BuildBlock=>{
+            let entries=read_all_entries().unwrap();
+            if entries.len() < 5{
+                println!("Atleast 5 entries are required");
+                return;
+            }
+            let block_entries=entries[..5].to_vec();
+            let block= crate::merkle::MerkleBlock::new(block_entries);
+            crate::ledger::write_merkle_block(&block).expect("Failed to write Merkle block");
+            println!("Block created with Merkle Root: {}", block.merkle_root);
         }
     }
 }
