@@ -1,6 +1,8 @@
 use crate::ledger::{append_entry, get_last_hash, read_all_block_entries, read_all_entries};
+use crate::merkle::compute_merkle_root;
 use crate::models::LedgerEntry;
 use clap::{Parser, Subcommand};
+use colored::Colorize;
 
 #[derive(Parser)]
 #[command(
@@ -18,9 +20,10 @@ pub enum Commands {
     Add { id: String, json_data: String },
     Get { id: String },
     History { id: String },
+    VerifyChain,
     BuildBlock,
     ListBlocks,
-    VerifyChain,
+    VerifyBlocks,
 }
 
 pub fn run() {
@@ -54,27 +57,6 @@ pub fn run() {
                 }
             }
         }
-        Commands::BuildBlock => {
-            let entries = read_all_entries().unwrap();
-            if entries.len() < 5 {
-                println!("Atleast 5 entries are required");
-                return;
-            }
-            let block_entries = entries[..5].to_vec();
-            let block = crate::merkle::MerkleBlock::new(block_entries);
-            crate::ledger::write_merkle_block(&block).expect("Failed to write Merkle block");
-            println!("Block created with Merkle Root: {}", block.merkle_root);
-        }
-        Commands::ListBlocks => {
-            let blocks = read_all_block_entries().unwrap();
-            if blocks.is_empty() {
-                println!("No Blocks Found");
-            } else {
-                for block in blocks {
-                    println!("{}", block);
-                }
-            }
-        }
         Commands::VerifyChain => {
             let entries = read_all_entries().unwrap();
             if entries.len() < 2 {
@@ -86,13 +68,45 @@ pub fn run() {
                     if first_hash.hash != second_hash.prevhash {
                         println!(
                             "Tampering Detected at entries:\n\n{}\n{}",
-                            first_hash, second_hash
+                            entries[i-1], entries[i]
                         );
                         return;
                     }
                 }
             }
             println!("Chain is intact")
+        }
+        Commands::BuildBlock => {
+            let entries = read_all_entries().unwrap();
+            if entries.len() < 5 {
+                println!("Atleast 5 entries are required");
+                return;
+            }
+            let block_entries = entries[..5].to_vec();
+            let block = crate::merkle::MerkleBlock::new(block_entries);
+            crate::ledger::write_merkle_block(&block).expect("Failed to write Merkle block");
+            println!("{} {}","Block created with Merkle Root:".green(), block.merkle_root);
+        }
+        Commands::ListBlocks => {
+            let blocks = read_all_block_entries().unwrap();
+            if blocks.is_empty() {
+                println!("No Blocks Found");
+            } else {
+                for block in blocks {
+                    println!("{}", block);
+                }
+            }
+        }
+        Commands::VerifyBlocks =>{
+            let blocks = read_all_block_entries().unwrap();
+            for i in 0..blocks.len(){
+                let verification_hash= compute_merkle_root(&blocks[i].entries);
+                if &verification_hash != &blocks[i].merkle_root{
+                    println!("{}{}","Tampering Detected in Merkle root:\n".red(),blocks[i]);
+                    return;
+                }
+            }
+            println!("{}","Verification of Merkleblocks is OK".green())
         }
     }
 }
@@ -106,6 +120,15 @@ mod tests {
         let entries=read_all_entries().unwrap();
         for i in 1..entries.len(){
             assert_eq!(entries[i-1].hash,entries[i].prevhash);
+        }
+    }
+
+    #[test]
+    fn test_block_integrity(){
+        let blocks = read_all_block_entries().unwrap();
+        for block in blocks{
+            let verification_hash = compute_merkle_root(&block.entries);
+            assert_eq!(verification_hash,block.merkle_root);
         }
     }
 }
