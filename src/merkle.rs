@@ -1,6 +1,7 @@
 use crate::models::LedgerEntry;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::fmt;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MerkleBlock {
@@ -41,4 +42,21 @@ pub fn compute_merkle_root(entries: &[LedgerEntry]) -> String {
         hashes = next_level;
     }
     return hashes[0].clone();
+}
+
+impl fmt::Display for MerkleBlock {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        let time = match chrono::DateTime::from_timestamp(self.timestamp, 0) {
+            Some(time) => time.format("%d-%m-%Y %H:%M:%S").to_string(),
+            None => return Err(fmt::Error),
+        };
+
+        let pretty_data = serde_json::to_string_pretty(&self.entries).map_err(|_| fmt::Error)?;
+
+        write!(
+            f,
+            "[{}] \nMerkle Root: {}\nEntries: {}\n",
+            time, self.merkle_root, pretty_data
+        )
+    }
 }

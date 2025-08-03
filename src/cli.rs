@@ -1,6 +1,6 @@
 use clap::{Parser,Subcommand};
 use crate::models::LedgerEntry;
-use crate::ledger::{append_entry, get_last_hash, read_all_entries};
+use crate::ledger::{append_entry, get_last_hash, read_all_block_entries, read_all_entries};
 
 
 #[derive(Parser)]
@@ -22,7 +22,8 @@ pub enum Commands{
     History{
         id:String,
     },
-    BuildBlock
+    BuildBlock,
+    ListBlocks,
 }
 
 pub fn run(){
@@ -65,6 +66,16 @@ pub fn run(){
             let block= crate::merkle::MerkleBlock::new(block_entries);
             crate::ledger::write_merkle_block(&block).expect("Failed to write Merkle block");
             println!("Block created with Merkle Root: {}", block.merkle_root);
+        }
+        Commands::ListBlocks=>{
+            let blocks=read_all_block_entries().unwrap();
+            if blocks.is_empty(){
+                println!("No Blocks Found");
+            }else{
+                for block in blocks{
+                    println!("{}",block);
+                }
+            }
         }
     }
 }
