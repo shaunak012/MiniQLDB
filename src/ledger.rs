@@ -17,6 +17,10 @@ pub fn append_entry(entry: &LedgerEntry) -> std::io::Result<()> {
     Ok(())
 }
 
+pub fn clean_entries() -> std::io::Result<()> {
+    std::fs::write(LEDGER_FILE,"")
+}
+
 pub fn read_all_entries() -> std::io::Result<Vec<LedgerEntry>> {
     let file = match File::open(LEDGER_FILE) {
         Ok(f) => f,

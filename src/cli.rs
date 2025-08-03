@@ -1,4 +1,4 @@
-use crate::ledger::{append_entry, get_last_hash, read_all_block_entries, read_all_entries};
+use crate::ledger::{append_entry, clean_entries, get_last_hash, read_all_block_entries, read_all_entries};
 use crate::merkle::compute_merkle_root;
 use crate::models::LedgerEntry;
 use clap::{Parser, Subcommand};
@@ -24,6 +24,14 @@ pub enum Commands {
     BuildBlock,
     ListBlocks,
     VerifyBlocks,
+    ExportLedger{
+        path:String
+    },
+    ImportLedger{
+        path:String,
+        #[arg(long,default_value_t=false)]
+        replace:bool
+    }
 }
 
 pub fn run() {
@@ -107,6 +115,23 @@ pub fn run() {
                 }
             }
             println!("{}","Verification of Merkleblocks is OK".green())
+        }
+        Commands::ExportLedger { path } =>{
+            let entries = read_all_entries().unwrap();
+            let json = serde_json::to_string_pretty(&entries).expect("String conversion for Export Failed");
+            std::fs::write(&path, json).expect("Write for export failed");
+            println!("Exported {} entries to {}",entries.len(),path);
+        }
+        Commands::ImportLedger { path , replace} =>{
+            let content = std::fs::read_to_string(&path).expect("Read for import failed");
+            let imported: Vec<LedgerEntry> = serde_json::from_str(&content).expect("Invalid Json for import");
+            if replace{
+                clean_entries().expect("cleaning ledger.jsonl for import failed")
+            }
+            for entry in &imported{
+                append_entry(&entry).expect("append for import failed");
+            }
+            println!("Imported {} entries from {}", &imported.len(), &path);
         }
     }
 }
