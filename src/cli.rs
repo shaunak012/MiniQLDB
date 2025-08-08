@@ -1,7 +1,7 @@
 use crate::ledger::{
     append_entry, clean_entries, get_last_hash, read_all_block_entries, read_all_entries,
 };
-use crate::merkle::{MerkleProof, compute_merkle_root};
+use crate::merkle::{compute_merkle_root, generate_merkle_proof, MerkleProof};
 use crate::models::LedgerEntry;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
@@ -165,7 +165,22 @@ pub fn run() {
             block_index,
             entry_id,
         } => {
-            //Todo
+            let blocks = read_all_block_entries().unwrap();
+            if block_index == 0 || block_index > blocks.len(){
+                println!("Invalid block index");
+                return;
+            }
+            let block = &blocks[block_index-1];
+            let entry = block.entries.iter().find(|e| e.id == entry_id);
+            if let Some(e) = entry{
+                let proof = generate_merkle_proof(&block.entries, &e.hash).expect("Failed to generation proof");
+                let proof_json = serde_json::to_string_pretty(&proof).unwrap();
+                let file_name = format!("Proof_{}_block{}.json",entry_id,block_index);
+                std::fs::write(&file_name, proof_json).unwrap();
+                println!("Proof Saved to {}", file_name);
+            }else{
+                println!("Entry Not Found in block");
+            }
         }
         Commands::VerifyProof { proof_file, root } => {
             let content = std::fs::read_to_string(&proof_file).unwrap();
