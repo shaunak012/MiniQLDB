@@ -60,3 +60,49 @@ impl fmt::Display for MerkleBlock {
         )
     }
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct MerkleProof {
+    pub leaf_hash: String,
+    pub path: Vec<(String, bool)>,
+}
+
+pub fn generate_merkle_proof(entries: &[LedgerEntry], target_hash: &str) -> Option<MerkleProof> {
+    let hashes: Vec<String> = entries.iter().map(|e| e.hash.clone()).collect();
+    let mut path = Vec::new();
+    let mut index = hashes.iter().position(|i| i == target_hash)?;
+    let mut level_hashes = hashes.clone();
+
+    while level_hashes.len() > 1 {
+        if level_hashes.len() % 2 != 0 {
+            level_hashes.push(level_hashes.last().unwrap().clone());
+        }
+        let mut next_level = Vec::new();
+        for i in (0..level_hashes.len()).step_by(2) {
+            let left = &level_hashes[i];
+            let right = &level_hashes[i + 1];
+            let combined = format!("{}{}", left, right);
+            let mut hasher = Sha256::new();
+            hasher.update(combined);
+            let parent = format!("{:x}", hasher.finalize());
+
+            if i == index || i + 1 == index {
+                let is_left = i != index;
+                let sibling_hash = if i == index {
+                    right.clone()
+                } else {
+                    left.clone()
+                };
+                path.push((sibling_hash, is_left));
+                index = next_level.len();
+            }
+
+            next_level.push(parent);
+        }
+        level_hashes = next_level
+    }
+    Some(MerkleProof {
+        leaf_hash: target_hash.to_string(),
+        path,
+    })
+}
