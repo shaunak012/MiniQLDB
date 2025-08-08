@@ -1,5 +1,7 @@
-use crate::ledger::{append_entry, clean_entries, get_last_hash, read_all_block_entries, read_all_entries};
-use crate::merkle::compute_merkle_root;
+use crate::ledger::{
+    append_entry, clean_entries, get_last_hash, read_all_block_entries, read_all_entries,
+};
+use crate::merkle::{MerkleProof, compute_merkle_root};
 use crate::models::LedgerEntry;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
@@ -17,21 +19,36 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    Add { id: String, json_data: String },
-    Get { id: String },
-    History { id: String },
+    Add {
+        id: String,
+        json_data: String,
+    },
+    Get {
+        id: String,
+    },
+    History {
+        id: String,
+    },
     VerifyChain,
     BuildBlock,
     ListBlocks,
     VerifyBlocks,
-    ExportLedger{
-        path:String
+    ExportLedger {
+        path: String,
     },
-    ImportLedger{
-        path:String,
-        #[arg(long,default_value_t=false)]
-        replace:bool
-    }
+    ImportLedger {
+        path: String,
+        #[arg(long, default_value_t = false)]
+        replace: bool,
+    },
+    GenerateProof {
+        block_index: usize,
+        entry_id: String,
+    },
+    VerifyProof {
+        proof_file: String,
+        root: String,
+    },
 }
 
 pub fn run() {
@@ -76,7 +93,8 @@ pub fn run() {
                     if first_hash.hash != second_hash.prevhash {
                         println!(
                             "Tampering Detected at entries:\n\n{}\n{}",
-                            entries[i-1], entries[i]
+                            entries[i - 1],
+                            entries[i]
                         );
                         return;
                     }
@@ -93,7 +111,11 @@ pub fn run() {
             let block_entries = entries[..5].to_vec();
             let block = crate::merkle::MerkleBlock::new(block_entries);
             crate::ledger::write_merkle_block(&block).expect("Failed to write Merkle block");
-            println!("{} {}","Block created with Merkle Root:".green(), block.merkle_root);
+            println!(
+                "{} {}",
+                "Block created with Merkle Root:".green(),
+                block.merkle_root
+            );
         }
         Commands::ListBlocks => {
             let blocks = read_all_block_entries().unwrap();
@@ -105,33 +127,54 @@ pub fn run() {
                 }
             }
         }
-        Commands::VerifyBlocks =>{
+        Commands::VerifyBlocks => {
             let blocks = read_all_block_entries().unwrap();
-            for i in 0..blocks.len(){
-                let verification_hash= compute_merkle_root(&blocks[i].entries);
-                if &verification_hash != &blocks[i].merkle_root{
-                    println!("{}{}","Tampering Detected in Merkle root:\n".red(),blocks[i]);
+            for i in 0..blocks.len() {
+                let verification_hash = compute_merkle_root(&blocks[i].entries);
+                if &verification_hash != &blocks[i].merkle_root {
+                    println!(
+                        "{}{}",
+                        "Tampering Detected in Merkle root:\n".red(),
+                        blocks[i]
+                    );
                     return;
                 }
             }
-            println!("{}","Verification of Merkleblocks is OK".green())
+            println!("{}", "Verification of Merkleblocks is OK".green())
         }
-        Commands::ExportLedger { path } =>{
+        Commands::ExportLedger { path } => {
             let entries = read_all_entries().unwrap();
-            let json = serde_json::to_string_pretty(&entries).expect("String conversion for Export Failed");
+            let json = serde_json::to_string_pretty(&entries)
+                .expect("String conversion for Export Failed");
             std::fs::write(&path, json).expect("Write for export failed");
-            println!("Exported {} entries to {}",entries.len(),path);
+            println!("Exported {} entries to {}", entries.len(), path);
         }
-        Commands::ImportLedger { path , replace} =>{
+        Commands::ImportLedger { path, replace } => {
             let content = std::fs::read_to_string(&path).expect("Read for import failed");
-            let imported: Vec<LedgerEntry> = serde_json::from_str(&content).expect("Invalid Json for import");
-            if replace{
+            let imported: Vec<LedgerEntry> =
+                serde_json::from_str(&content).expect("Invalid Json for import");
+            if replace {
                 clean_entries().expect("cleaning ledger.jsonl for import failed")
             }
-            for entry in &imported{
+            for entry in &imported {
                 append_entry(&entry).expect("append for import failed");
             }
             println!("Imported {} entries from {}", &imported.len(), &path);
+        }
+        Commands::GenerateProof {
+            block_index,
+            entry_id,
+        } => {
+            //Todo
+        }
+        Commands::VerifyProof { proof_file, root } => {
+            let content = std::fs::read_to_string(&proof_file).unwrap();
+            let proof: MerkleProof = serde_json::from_str(&content).unwrap();
+            if crate::merkle::verify_merkle_proof(&proof, &root) {
+                println!("Proof Verified Successfully");
+            } else {
+                println!("Proof Verification Failed");
+            }
         }
     }
 }
@@ -141,20 +184,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_chain_integrity (){
-        let entries=read_all_entries().unwrap();
-        for i in 1..entries.len(){
-            assert_eq!(entries[i-1].hash,entries[i].prevhash);
+    fn test_chain_integrity() {
+        let entries = read_all_entries().unwrap();
+        for i in 1..entries.len() {
+            assert_eq!(entries[i - 1].hash, entries[i].prevhash);
         }
     }
 
     #[test]
-    fn test_block_integrity(){
+    fn test_block_integrity() {
         let blocks = read_all_block_entries().unwrap();
-        for block in blocks{
+        for block in blocks {
             let verification_hash = compute_merkle_root(&block.entries);
-            assert_eq!(verification_hash,block.merkle_root);
+            assert_eq!(verification_hash, block.merkle_root);
         }
     }
 }
-
