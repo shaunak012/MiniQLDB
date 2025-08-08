@@ -106,3 +106,18 @@ pub fn generate_merkle_proof(entries: &[LedgerEntry], target_hash: &str) -> Opti
         path,
     })
 }
+
+pub fn verify_merkle_proof(proof: &MerkleProof, root: &str) -> bool {
+    let mut hash = proof.leaf_hash.clone();
+    for (sibling, is_left) in &proof.path {
+        let combined = if *is_left {
+            format!("{}{}", sibling, hash)
+        } else {
+            format!("{}{}", hash, sibling)
+        };
+        let mut hasher = Sha256::new();
+        hasher.update(combined);
+        hash = format!("{:x}", hasher.finalize());
+    }
+    hash == root
+}
